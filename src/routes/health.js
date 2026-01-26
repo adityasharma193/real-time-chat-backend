@@ -4,8 +4,7 @@ const router = express.Router();
 router.get("/", (req, res) => {
   res.json({
     status: "ok",
-    message: "Chat backend running",
-    time: new Date().toISOString()
+    message: "Server is healthy"
   });
 });
 
