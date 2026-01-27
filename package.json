@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/adityasharma193/real-time-chat-backend#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "express": "^5.2.1"
   }
 }
