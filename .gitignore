@@ -1,1 +1,6 @@
 .env
+node_modules/.bin/semver
+/node_modules
+node_modules/.package-lock.json
+node_modules/.package-lock.json
+/node_modules
