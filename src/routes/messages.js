@@ -1,77 +1,82 @@
 const express = require("express");
 const router = express.Router();
-const { messages } = require("../data/messages");
-const { rooms } = require("../data/rooms");
+const pool = require("../config/db");
 const authMiddleware = require("../authMiddleware");
 
-console.log("MESSAGES ROUTES LOADED");
-router.post("/:roomId/send", authMiddleware, (req, res) => {
-  const roomId = parseInt(req.params.roomId);
-  const { text } = req.body;
-  const userId = req.user.userId;
+// ========================================
+// GET MESSAGES (cursor pagination)
+// ========================================
+router.get("/:roomId", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const roomId = Number(req.params.roomId);
 
-  if (!text) {
-    return res.status(400).json({ error: "Message text is required" });
+    if (!roomId || Number.isNaN(roomId)) {
+      return res.status(400).json({ error: "Invalid roomId" });
+    }
+
+    const cursor = req.query.cursor
+      ? Number(req.query.cursor)
+      : null;
+
+    // ================= CHECK MEMBERSHIP =================
+    const member = await pool.query(
+      "SELECT 1 FROM room_members WHERE room_id=$1 AND user_id=$2",
+      [roomId, userId]
+    );
+
+    if (member.rows.length === 0) {
+      return res.status(403).json({ error: "Not a room member" });
+    }
+
+    // ================= QUERY =================
+    const query = `
+      SELECT
+        m.id,
+        m.room_id AS "roomId",
+        m.user_id AS "userId",
+        u.name,
+        m.text,
+        m.status,
+        m.created_at AS "createdAt",
+
+        (
+          SELECT json_agg(r)
+          FROM (
+            SELECT emoji, COUNT(*) AS count
+            FROM reactions
+            WHERE message_id = m.id
+            GROUP BY emoji
+          ) r
+        ) AS reactions
+
+      FROM messages m
+      JOIN users u ON u.id = m.user_id
+      WHERE m.room_id = $1
+      ${cursor ? "AND m.id < $2" : ""}
+      ORDER BY m.id DESC
+      LIMIT 20
+    `;
+
+    const values = cursor ? [roomId, cursor] : [roomId];
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      messages: result.rows.reverse(), // oldest → newest
+      nextCursor:
+        result.rows.length > 0
+          ? result.rows[result.rows.length - 1].id
+          : null,
+    });
+
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({
+      error: "Failed to fetch messages",
+      details: err.message,
+    });
   }
-
-  const room = rooms.find(r => r.id === roomId);
-  if (!room) {
-    return res.status(404).json({ error: "Room not found" });
-  }
-
-  if (!room.users.includes(userId)) {
-    return res.status(403).json({ error: "You are not a member of this room" });
-  }
-
-  const message = {
-    id: messages.length + 1,
-    roomId,
-    userId,
-    text,
-    createdAt: new Date()
-  };
-
-  messages.push(message);
-
-  res.status(201).json({
-    success: true,
-    message
-  });
 });
-router.get("/:roomId", authMiddleware, (req, res) => {
-  const roomId = parseInt(req.params.roomId);
 
-  const room = rooms.find(r => r.id === roomId);
-  if (!room) {
-    return res.status(404).json({ error: "Room not found" });
-  }
-
-  const roomMessages = messages.filter(m => m.roomId === roomId);
-
-  res.json({
-    success: true,
-    messages: roomMessages
-  });
-});
-
-router.get("/:roomId", authMiddleware, (req, res) => {
-  const roomId = parseInt(req.params.roomId);
-  const userId = req.user.userId;
-
-  const room = rooms.find(r => r.id === roomId);
-  if (!room) {
-    return res.status(404).json({ error: "Room not found" });
-  }
-
-  if (!room.users.includes(userId)) {
-    return res.status(403).json({ error: "You are not a member of this room" });
-  }
-
-  const roomMessages = messages.filter(m => m.roomId === roomId);
-
-  res.json({
-    success: true,
-    messages: roomMessages
-  });
-});
 module.exports = router;

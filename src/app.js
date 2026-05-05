@@ -1,22 +1,32 @@
 const express = require("express");
+const cors = require("cors");
+
 const healthRoute = require("./routes/health");
 const echoRoute = require("./routes/echo");
-const usersRoute = require("./routes/users");
 const authRoute = require("./routes/auth");
-const chatRoute = require("./routes/chat");
-const roomsRoute = require("./routes/rooms");
-const messagesRoute = require("./routes/messages");
 
 const app = express();
 
+// CORS
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 
-app.use("/health", healthRoute);
-app.use("/echo", echoRoute);
-app.use("/users", usersRoute);   // temporary
-app.use("/auth", authRoute);     // THIS is what enables /auth/*
-app.use("/chat", chatRoute);
-app.use("/rooms", roomsRoute);
-app.use("/messages", messagesRoute);
+// DEBUG LOGGER
+app.use((req, res, next) => {
+  console.log("🌐", req.method, req.url);
+  next();
+});
+
+// ROUTES (ALL UNDER /api)
+app.use("/api/health", healthRoute);
+app.use("/api/echo", echoRoute);
+app.use("/api/auth", authRoute);
+app.use("/api/messages", require("./routes/messages"));
+app.use("/api/rooms", require("./routes/rooms"));
+
 module.exports = app;
-console.log("JWT SECRET:", process.env.JWT_SECRET);

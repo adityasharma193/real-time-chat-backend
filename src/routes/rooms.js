@@ -1,66 +1,41 @@
 const express = require("express");
 const router = express.Router();
+const pool = require("../config/db");
 const authMiddleware = require("../authMiddleware");
-const { rooms } = require("../data/rooms");
 
-/*
-POST /rooms/create
-*/
-router.post("/create", authMiddleware, (req, res) => {
-  const { name } = req.body;
+// ================= GET ROOMS WITH UNREAD =================
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
-  if (!name) {
-    return res.status(400).json({ error: "Room name is required" });
+    const result = await pool.query(`
+      SELECT 
+        r.id,
+        r.name,
+
+        COALESCE(COUNT(m.id), 0)::int AS unread_count
+
+      FROM rooms r
+
+      JOIN room_members rm 
+        ON rm.room_id = r.id
+
+      LEFT JOIN messages m 
+        ON m.room_id = r.id
+        AND m.created_at > rm.last_read_at
+
+      WHERE rm.user_id = $1
+
+      GROUP BY r.id, r.name
+      ORDER BY r.id
+    `, [userId]);
+
+    res.json({ rooms: result.rows });
+
+  } catch (err) {
+    console.error("ROOMS ERROR:", err);
+    res.status(500).json({ error: "Failed to load rooms" });
   }
-
-  const room = {
-    id: rooms.length + 1,
-    name,
-    createdBy: req.user.userId,
-    users: [req.user.userId]
-  };
-
-  rooms.push(room);
-
-  res.status(201).json({
-    success: true,
-    room
-  });
-});
-
-/*
-POST /rooms/:roomId/join
-*/
-router.post("/:roomId/join", authMiddleware, (req, res) => {
-  const roomId = parseInt(req.params.roomId);
-  const userId = req.user.userId;
-
-  const room = rooms.find(r => r.id === roomId);
-  if (!room) {
-    return res.status(404).json({ error: "Room not found" });
-  }
-
-  if (room.users.includes(userId)) {
-    return res.status(400).json({ error: "User already in this room" });
-  }
-
-  room.users.push(userId);
-
-  res.json({
-    success: true,
-    message: "Joined room successfully",
-    room
-  });
-});
-
-/*
-GET /rooms
-*/
-router.get("/", authMiddleware, (req, res) => {
-  res.json({
-    success: true,
-    rooms
-  });
 });
 
 module.exports = router;
