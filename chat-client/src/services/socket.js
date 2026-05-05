@@ -10,10 +10,10 @@ export const connectSocket = (token) => {
     socket = null;
   }
 
-  socket = io("http://localhost:5000", {
-    auth: { token },
-    transports: ["websocket"],
-  });
+  socket = io(import.meta.env.VITE_API_URL, {
+  auth: { token },
+  transports: ["websocket"],
+});
 
   socket.on("connect", () => {
     console.log("✅ socket connected:", socket.id);
