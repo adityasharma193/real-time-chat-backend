@@ -6,8 +6,8 @@ const app = require("./app");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const pool = require("./config/db");
-const { createClient } = require("redis");
-const { createAdapter } = require("@socket.io/redis-adapter");
+//const { createClient } = require("redis");
+//const { createAdapter } = require("@socket.io/redis-adapter");
 const { isRateLimited } = require("./utils/rateLimiter");
 
 const server = http.createServer(app);
@@ -19,23 +19,6 @@ const io = new Server(server, {
 // ================= ONLINE USERS (ONLY ONCE) =================
 const onlineUsers = new Map();
 
-// ================= REDIS =================
-const pubClient = createClient({
-  url: process.env.REDIS_URL || "redis://127.0.0.1:6379"
-});
-
-const subClient = pubClient.duplicate();
-
-(async () => {
-  try {
-    await pubClient.connect();
-    await subClient.connect();
-    io.adapter(createAdapter(pubClient, subClient));
-    console.log("✅ Redis connected");
-  } catch (err) {
-    console.error("❌ Redis error:", err);
-  }
-})();
 
 // ================= AUTH =================
 io.use((socket, next) => {
