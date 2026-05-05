@@ -10,7 +10,7 @@ export const connectSocket = (token) => {
     socket = null;
   }
 
-  socket = io(import.meta.env.VITE_API_URL, {
+  socket = io(process.env.REACT_APP_API_URL, {
   auth: { token },
   transports: ["websocket"],
 });
