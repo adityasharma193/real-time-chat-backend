@@ -15,12 +15,11 @@ function App() {
     try {
       const data = await getRooms();
 
-      const formatted = (data?.rooms || []).map((r) => ({
-        id: r.id,
-        name: r.name,
-        unread_count: r.unread_count || 0,
-      }));
-
+      const formatted = (data || []).map((r) => ({
+  id: r.id,
+  name: r.name,
+  unread_count: r.unread_count || 0,
+}));
       setRooms(formatted);
     } catch (err) {
       console.error("Failed to load rooms:", err);
