@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const API_URL =
-  "https://real-time-chat-backend-0q4t.onrender.com/api";
-
+  process.env.REACT_APP_API_URL ||
+  "http://localhost:5000/api";
 // ================= TOKEN HEADERS =================
 const authHeaders = () => {
   const token = localStorage.getItem("token");

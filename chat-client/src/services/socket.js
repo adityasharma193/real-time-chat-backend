@@ -1,43 +1,32 @@
 import { io } from "socket.io-client";
 
-let socket = null;
+const SOCKET_URL =
+  process.env.REACT_APP_API_URL
+    ?.replace("/api", "") ||
+  "http://localhost:5000";
 
-// ================= CONNECT =================
+let socket;
+
 export const connectSocket = (token) => {
-  // 🔥 prevent duplicate connections
-  if (socket) {
-    socket.disconnect();
-    socket = null;
+
+  if (!socket) {
+
+    socket = io(SOCKET_URL, {
+      auth: {
+        token,
+      },
+    });
   }
-
-  socket = io(process.env.REACT_APP_API_URL, {
-  auth: { token },
-  transports: ["websocket"],
-});
-
-  socket.on("connect", () => {
-    console.log("✅ socket connected:", socket.id);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("❌ socket disconnected");
-  });
-
-  socket.on("connect_error", (err) => {
-    console.log("❌ socket error:", err.message);
-  });
 
   return socket;
 };
 
-// ================= GET =================
 export const getSocket = () => socket;
 
-// ================= DISCONNECT =================
 export const disconnectSocket = () => {
+
   if (socket) {
     socket.disconnect();
     socket = null;
-    console.log("🔌 socket manually disconnected");
   }
 };
