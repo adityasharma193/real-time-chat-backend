@@ -11,7 +11,7 @@ const cors = require("cors");
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://real-time-chat-ktb1z4a4z-adityasharma2289-2862s-projects.vercel.app"
+    "https://real-time-chat-p5y7wd6t0-adityasharma2289-2862s-projects.vercel.app/"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
