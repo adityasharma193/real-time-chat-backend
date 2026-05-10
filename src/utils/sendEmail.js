@@ -1,4 +1,8 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+// FORCE IPV4
+dns.setDefaultResultOrder("ipv4first");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -13,24 +17,26 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
+
+  family: 4, // FORCE IPV4
 });
 
 const sendOTP = async (email, otp) => {
 
   try {
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "Your OTP Code",
+      subject: "OTP Verification",
       html: `
-        <h2>OTP Verification</h2>
+        <h2>Your OTP Code</h2>
         <h1>${otp}</h1>
         <p>Expires in 10 minutes.</p>
       `,
     });
 
-    console.log("✅ OTP Email Sent");
+    console.log("✅ Email sent:", info.response);
 
   } catch (err) {
 
