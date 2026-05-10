@@ -12,17 +12,16 @@ const { isRateLimited } = require("./utils/rateLimiter");
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
+const io = socketIo(server, {
   cors: {
     origin: [
       "http://localhost:3000",
-      "https://real-time-chat-rg6656wnb-adityasharma2289-2862s-projects.vercel.app/"
+      "https://real-time-chat-ktb1z4a4z-adityasharma2289-2862s-projects.vercel.app"
     ],
     methods: ["GET", "POST"],
     credentials: true
   }
 });
-
 // ================= ONLINE USERS (ONLY ONCE) =================
 const onlineUsers = new Map();
 
