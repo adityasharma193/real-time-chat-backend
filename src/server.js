@@ -10,6 +10,7 @@ const pool = require("./config/db");
 //const { createAdapter } = require("@socket.io/redis-adapter");
 const { isRateLimited } = require("./utils/rateLimiter");
 
+const server = http.createServer(app);
 const socketIo = require("socket.io");
 const io = socketIo(server, {
   cors: {
