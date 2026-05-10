@@ -1,6 +1,4 @@
 const express = require("express");
-const cors = require("cors");
-
 const healthRoute = require("./routes/health");
 const echoRoute = require("./routes/echo");
 const authRoute = require("./routes/auth");
@@ -8,11 +6,14 @@ const authRoute = require("./routes/auth");
 const app = express();
 
 // CORS
+const cors = require("cors");
+
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://real-time-chat-rg6656wnb-adityasharma2289-2862s-projects.vercel.app/"
+    "https://real-time-chat-ktb1z4a4z-adityasharma2289-2862s-projects.vercel.app"
   ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 
