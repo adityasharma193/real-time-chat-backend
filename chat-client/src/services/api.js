@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL =
   "https://real-time-chat-backend-0q4t.onrender.com/api";
 
-// ================= TOKEN =================
+// ================= TOKEN HEADERS =================
 const authHeaders = () => {
   const token = localStorage.getItem("token");
 
@@ -14,13 +14,16 @@ const authHeaders = () => {
   };
 };
 
-// ================= ROOMS =================
+// ================= GET ROOMS =================
 export const getRooms = async () => {
   try {
+
     const res = await axios.get(
       `${API_URL}/rooms`,
       authHeaders()
     );
+
+    console.log("ROOMS RESPONSE:", res.data);
 
     return res.data;
 
@@ -31,24 +34,20 @@ export const getRooms = async () => {
       err.response?.data || err.message
     );
 
-    return [];
+    return { rooms: [] };
   }
 };
-// ================= MESSAGES =================
+
+// ================= GET MESSAGES =================
 export const getMessages = async (roomId) => {
-
   try {
-
-    const token = localStorage.getItem("token");
 
     const res = await axios.get(
       `${API_URL}/rooms/${roomId}/messages`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      authHeaders()
     );
+
+    console.log("MESSAGES RESPONSE:", res.data);
 
     return res.data;
 
@@ -62,8 +61,12 @@ export const getMessages = async (roomId) => {
     return { messages: [] };
   }
 };
+
 // ================= LOGIN =================
-export const loginAPI = async (email, password) => {
+export const loginAPI = async (
+  email,
+  password
+) => {
 
   const res = await axios.post(
     `${API_URL}/auth/login`,
