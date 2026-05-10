@@ -8,8 +8,6 @@ const authRoute = require("./routes/auth");
 const app = express();
 
 // CORS
-const cors = require("cors");
-
 app.use(cors({
   origin: [
     "http://localhost:3000",
