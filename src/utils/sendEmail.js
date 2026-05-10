@@ -1,32 +1,13 @@
-const nodemailer = require("nodemailer");
-const dns = require("dns");
+const { Resend } = require("resend");
 
-// FORCE IPV4
-dns.setDefaultResultOrder("ipv4first");
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-
-  tls: {
-    rejectUnauthorized: false,
-  },
-
-  family: 4, // FORCE IPV4
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTP = async (email, otp) => {
 
   try {
 
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const response = await resend.emails.send({
+      from: "onboarding@resend.dev",
       to: email,
       subject: "OTP Verification",
       html: `
@@ -36,11 +17,11 @@ const sendOTP = async (email, otp) => {
       `,
     });
 
-    console.log("✅ Email sent:", info.response);
+    console.log("✅ Email sent:", response);
 
   } catch (err) {
 
-    console.error("❌ Email send failed:", err);
+    console.error("❌ Resend error:", err);
 
     throw err;
   }

@@ -30,6 +30,7 @@
     "nodemailer": "^8.0.5",
     "pg": "^8.18.0",
     "redis": "^5.11.0",
+    "resend": "^6.12.3",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },
