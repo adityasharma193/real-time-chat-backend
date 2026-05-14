@@ -1,9 +1,13 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+
+import {
+  useNavigate,
+} from "react-router-dom";
 
 export default function OAuthSuccess() {
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   useEffect(() => {
 
@@ -15,6 +19,7 @@ export default function OAuthSuccess() {
     const token =
       params.get("token");
 
+    // ================= SAVE TOKEN =================
     if (token) {
 
       localStorage.setItem(
@@ -22,10 +27,21 @@ export default function OAuthSuccess() {
         token
       );
 
+      // fetch user manually later if needed
       navigate("/");
     }
 
-  }, []);
+    // ================= INVALID TOKEN =================
+    else {
 
-  return <div>Logging in...</div>;
+      navigate("/");
+    }
+
+  }, [navigate]);
+
+  return (
+    <div className="h-screen flex items-center justify-center bg-gray-900 text-white">
+      Logging in...
+    </div>
+  );
 }

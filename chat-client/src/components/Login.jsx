@@ -79,7 +79,8 @@ export default function Login({
       } catch (err) {
 
         setError(
-          err.message
+          err.response?.data?.error ||
+          "Login failed"
         );
 
       } finally {
@@ -122,7 +123,8 @@ export default function Login({
       } catch (err) {
 
         setError(
-          err.message
+          err.response?.data?.error ||
+          "Register failed"
         );
 
       } finally {
@@ -165,11 +167,11 @@ export default function Login({
       className={`h-screen flex items-center justify-center ${
         dark
           ? "bg-gray-900 text-white"
-          : "bg-gray-100"
+          : "bg-gray-100 text-black"
       }`}
     >
 
-      {/* THEME */}
+      {/* THEME BUTTON */}
       <button
         onClick={() =>
           setDark(!dark)
@@ -183,14 +185,22 @@ export default function Login({
       </button>
 
       {/* CARD */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded w-80 shadow">
+      <div
+        className={`p-6 rounded w-80 shadow ${
+          dark
+            ? "bg-gray-800"
+            : "bg-white"
+        }`}
+      >
 
+        {/* TITLE */}
         <h2 className="text-xl mb-4 text-center capitalize">
           {mode}
         </h2>
 
+        {/* ERROR */}
         {error && (
-          <div className="text-red-500 mb-2 text-sm">
+          <div className="text-red-500 mb-3 text-sm">
             {error}
           </div>
         )}
@@ -198,47 +208,78 @@ export default function Login({
         {/* NAME */}
         {mode ===
           "register" && (
+
           <input
             name="name"
+            value={form.name}
             placeholder="Name"
+
             onChange={
               handleChange
             }
+
             onKeyDown={
               handleKeyDown
             }
-            className="w-full mb-2 p-2 rounded bg-gray-200 dark:bg-gray-700"
+
+            className={`w-full mb-2 p-2 rounded outline-none ${
+              dark
+                ? "bg-gray-700 text-white"
+                : "bg-gray-200 text-black"
+            }`}
           />
         )}
 
         {/* EMAIL */}
         <input
           name="email"
+          type="email"
+
+          value={form.email}
+
           placeholder="Email"
+
           onChange={
             handleChange
           }
+
           onKeyDown={
             handleKeyDown
           }
-          className="w-full mb-2 p-2 rounded bg-gray-200 dark:bg-gray-700"
+
+          className={`w-full mb-2 p-2 rounded outline-none ${
+            dark
+              ? "bg-gray-700 text-white"
+              : "bg-gray-200 text-black"
+          }`}
         />
 
         {/* PASSWORD */}
         <input
           type="password"
+
           name="password"
+
+          value={form.password}
+
           placeholder="Password"
+
           onChange={
             handleChange
           }
+
           onKeyDown={
             handleKeyDown
           }
-          className="w-full mb-3 p-2 rounded bg-gray-200 dark:bg-gray-700"
+
+          className={`w-full mb-3 p-2 rounded outline-none ${
+            dark
+              ? "bg-gray-700 text-white"
+              : "bg-gray-200 text-black"
+          }`}
         />
 
-        {/* LOGIN/REGISTER */}
+        {/* LOGIN / REGISTER BUTTON */}
         <button
           onClick={
             mode === "login"
@@ -248,7 +289,7 @@ export default function Login({
 
           disabled={loading}
 
-          className="w-full bg-blue-500 text-white py-2 rounded"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition"
         >
           {loading
             ? "Please wait..."
@@ -268,12 +309,12 @@ export default function Login({
             handleGoogleLogin
           }
 
-          className="w-full bg-white text-black py-2 rounded border"
+          className="w-full bg-gray-100 hover:bg-gray-200 text-black py-2 rounded border transition"
         >
           Continue with Google
         </button>
 
-        {/* SWITCH */}
+        {/* SWITCH MODE */}
         <div className="text-sm mt-4 text-center">
 
           {mode ===
@@ -286,7 +327,7 @@ export default function Login({
                 )
               }
 
-              className="cursor-pointer text-blue-500"
+              className="cursor-pointer text-blue-500 hover:underline"
             >
               Create account
             </span>
@@ -300,7 +341,7 @@ export default function Login({
                 )
               }
 
-              className="cursor-pointer text-blue-500"
+              className="cursor-pointer text-blue-500 hover:underline"
             >
               Back to login
             </span>
