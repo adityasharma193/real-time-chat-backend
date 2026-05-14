@@ -1,4 +1,4 @@
-import React, {
+import {
   useState,
 } from "react";
 
@@ -7,347 +7,201 @@ import {
   registerAPI,
 } from "../services/api";
 
-import {
-  useTheme,
-} from "../ThemeContext";
-
 export default function Login({
   onSuccess,
 }) {
 
-  const [mode, setMode] =
-    useState("login");
+  const [isLogin, setIsLogin] =
+    useState(true);
 
-  const [form, setForm] =
-    useState({
-      name: "",
-      email: "",
-      password: "",
-    });
+  const [name, setName] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
 
   const [error, setError] =
     useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  // ================= SUBMIT =================
+  const handleSubmit =
+    async (e) => {
 
-  const { dark, setDark } =
-    useTheme();
+      e.preventDefault();
 
-  // ================= CHANGE =================
-  const handleChange = (e) => {
-
-    setForm({
-      ...form,
-      [e.target.name]:
-        e.target.value,
-    });
-
-    setError("");
-  };
-
-  // ================= LOGIN =================
-  const handleLogin =
-    async () => {
+      setError("");
 
       try {
 
-        setLoading(true);
+        let data;
 
-        const data =
-          await loginAPI(
-            form.email,
-            form.password
-          );
+        // LOGIN
+        if (isLogin) {
 
-        localStorage.setItem(
-          "token",
-          data.token
-        );
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify(
-            data.user
-          )
-        );
-
-        onSuccess(
-          data.token
-        );
-
-      } catch (err) {
-
-        setError(
-          err.response?.data?.error ||
-          "Login failed"
-        );
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
-
-  // ================= REGISTER =================
-  const handleRegister =
-    async () => {
-
-      try {
-
-        setLoading(true);
-
-        const data =
-          await registerAPI(
-            form.name,
-            form.email,
-            form.password
-          );
-
-        localStorage.setItem(
-          "token",
-          data.token
-        );
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify(
-            data.user
-          )
-        );
-
-        onSuccess(
-          data.token
-        );
-
-      } catch (err) {
-
-        setError(
-          err.response?.data?.error ||
-          "Register failed"
-        );
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
-
-  // ================= ENTER =================
-  const handleKeyDown =
-    (e) => {
-
-      if (e.key === "Enter") {
-
-        e.preventDefault();
-
-        if (
-          mode === "login"
-        ) {
-
-          handleLogin();
-
-        } else {
-
-          handleRegister();
+          data =
+            await loginAPI(
+              email,
+              password
+            );
         }
+
+        // REGISTER
+        else {
+
+          data =
+            await registerAPI(
+              name,
+              email,
+              password
+            );
+        }
+
+        // SAVE TOKEN
+        localStorage.setItem(
+          "token",
+          data.token
+        );
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            data.user
+          )
+        );
+
+        // CALLBACK
+        if (onSuccess) {
+
+          onSuccess(
+            data.token
+          );
+        }
+
+        // FALLBACK
+        else {
+
+          window.location.href =
+            "/";
+        }
+
+      } catch (err) {
+
+        setError(
+          err.response?.data
+            ?.error ||
+          "Authentication failed"
+        );
       }
-    };
-
-  // ================= GOOGLE LOGIN =================
-  const handleGoogleLogin =
-    () => {
-
-      window.location.href =
-        "https://real-time-chat-backend-0q4t.onrender.com/api/auth/google";
     };
 
   return (
-    <div
-      className={`h-screen flex items-center justify-center ${
-        dark
-          ? "bg-gray-900 text-white"
-          : "bg-gray-100 text-black"
-      }`}
-    >
 
-      {/* THEME BUTTON */}
-      <button
-        onClick={() =>
-          setDark(!dark)
-        }
+    <div className="h-screen flex items-center justify-center bg-gray-900">
 
-        className="absolute top-4 right-4 bg-blue-500 px-3 py-1 rounded text-white"
-      >
-        {dark
-          ? "Light"
-          : "Dark"}
-      </button>
+      <div className="w-full max-w-sm bg-gray-800 p-6 rounded-xl shadow-lg">
 
-      {/* CARD */}
-      <div
-        className={`p-6 rounded w-80 shadow ${
-          dark
-            ? "bg-gray-800"
-            : "bg-white"
-        }`}
-      >
+        <h1 className="text-2xl font-bold text-center text-white mb-6">
+          {isLogin
+            ? "Login"
+            : "Create Account"}
+        </h1>
 
-        {/* TITLE */}
-        <h2 className="text-xl mb-4 text-center capitalize">
-          {mode}
-        </h2>
-
-        {/* ERROR */}
         {error && (
-          <div className="text-red-500 mb-3 text-sm">
+          <div className="bg-red-500/20 text-red-400 text-sm p-2 rounded mb-4">
             {error}
           </div>
         )}
 
-        {/* NAME */}
-        {mode ===
-          "register" && (
+        <form
+          onSubmit={
+            handleSubmit
+          }
+          className="space-y-4"
+        >
+
+          {!isLogin && (
+            <input
+              type="text"
+              placeholder="Name"
+              value={name}
+              onChange={(e) =>
+                setName(
+                  e.target.value
+                )
+              }
+              className="w-full p-3 rounded bg-gray-700 text-white outline-none"
+              required
+            />
+          )}
 
           <input
-            name="name"
-            value={form.name}
-            placeholder="Name"
-
-            onChange={
-              handleChange
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) =>
+              setEmail(
+                e.target.value
+              )
             }
-
-            onKeyDown={
-              handleKeyDown
-            }
-
-            className={`w-full mb-2 p-2 rounded outline-none ${
-              dark
-                ? "bg-gray-700 text-white"
-                : "bg-gray-200 text-black"
-            }`}
+            className="w-full p-3 rounded bg-gray-700 text-white outline-none"
+            required
           />
-        )}
 
-        {/* EMAIL */}
-        <input
-          name="email"
-          type="email"
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) =>
+              setPassword(
+                e.target.value
+              )
+            }
+            className="w-full p-3 rounded bg-gray-700 text-white outline-none"
+            required
+          />
 
-          value={form.email}
+          <button
+            type="submit"
+            className="w-full bg-blue-500 hover:bg-blue-600 transition p-3 rounded text-white font-semibold"
+          >
+            {isLogin
+              ? "Login"
+              : "Register"}
+          </button>
 
-          placeholder="Email"
-
-          onChange={
-            handleChange
-          }
-
-          onKeyDown={
-            handleKeyDown
-          }
-
-          className={`w-full mb-2 p-2 rounded outline-none ${
-            dark
-              ? "bg-gray-700 text-white"
-              : "bg-gray-200 text-black"
-          }`}
-        />
-
-        {/* PASSWORD */}
-        <input
-          type="password"
-
-          name="password"
-
-          value={form.password}
-
-          placeholder="Password"
-
-          onChange={
-            handleChange
-          }
-
-          onKeyDown={
-            handleKeyDown
-          }
-
-          className={`w-full mb-3 p-2 rounded outline-none ${
-            dark
-              ? "bg-gray-700 text-white"
-              : "bg-gray-200 text-black"
-          }`}
-        />
-
-        {/* LOGIN / REGISTER BUTTON */}
-        <button
-          onClick={
-            mode === "login"
-              ? handleLogin
-              : handleRegister
-          }
-
-          disabled={loading}
-
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition"
-        >
-          {loading
-            ? "Please wait..."
-            : mode === "login"
-            ? "Login"
-            : "Register"}
-        </button>
-
-        {/* DIVIDER */}
-        <div className="text-center text-sm my-3 opacity-70">
-          OR
-        </div>
+        </form>
 
         {/* GOOGLE LOGIN */}
-        <button
-          onClick={
-            handleGoogleLogin
-          }
-
-          className="w-full bg-gray-100 hover:bg-gray-200 text-black py-2 rounded border transition"
+        <a
+          href={`${process.env.REACT_APP_API_URL}/auth/google`}
         >
-          Continue with Google
-        </button>
+          <button className="w-full mt-4 bg-red-500 hover:bg-red-600 transition p-3 rounded text-white font-semibold">
+            Continue with Google
+          </button>
+        </a>
 
-        {/* SWITCH MODE */}
-        <div className="text-sm mt-4 text-center">
+        <div className="text-center mt-4">
 
-          {mode ===
-          "login" ? (
+          <button
+            onClick={() =>
+              setIsLogin(
+                !isLogin
+              )
+            }
+            className="text-blue-400 text-sm"
+          >
+            {isLogin
+              ? "Create account"
+              : "Already have an account?"}
+          </button>
 
-            <span
-              onClick={() =>
-                setMode(
-                  "register"
-                )
-              }
-
-              className="cursor-pointer text-blue-500 hover:underline"
-            >
-              Create account
-            </span>
-
-          ) : (
-
-            <span
-              onClick={() =>
-                setMode(
-                  "login"
-                )
-              }
-
-              className="cursor-pointer text-blue-500 hover:underline"
-            >
-              Back to login
-            </span>
-          )}
         </div>
+
       </div>
+
     </div>
   );
 }
