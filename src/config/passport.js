@@ -47,36 +47,57 @@ passport.use(
         // ================= CREATE USER =================
         if (user.rows.length === 0) {
 
+          // create user
+          const created =
+            await pool.query(
+              `
+              INSERT INTO users
+              (
+                name,
+                email,
+                password,
+                is_verified
+              )
+
+              VALUES
+              (
+                $1,
+                $2,
+                '',
+                true
+              )
+
+              RETURNING *
+              `,
+              [name, email]
+            );
+
+          const newUser =
+            created.rows[0];
+
+          // ================= AUTO JOIN GENERAL ROOM =================
           await pool.query(
             `
-            INSERT INTO users
+            INSERT INTO room_members
             (
-              name,
-              email,
-              password,
-              is_verified
+              room_id,
+              user_id,
+              last_read_at
             )
 
             VALUES
             (
+              1,
               $1,
-              $2,
-              '',
-              true
+              NOW()
             )
             `,
-            [name, email]
+            [newUser.id]
           );
 
-          // fetch created user
-          user = await pool.query(
-            `
-            SELECT *
-            FROM users
-            WHERE email = $1
-            `,
-            [email]
-          );
+          user = {
+            rows: [newUser],
+          };
         }
 
         // ================= SUCCESS =================

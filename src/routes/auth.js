@@ -36,7 +36,7 @@ router.post(
         });
       }
 
-      // ================= EXISTING USER =================
+      // ================= CHECK EXISTING USER =================
       const existing =
         await pool.query(
           `
@@ -95,6 +95,26 @@ router.post(
 
       const user =
         result.rows[0];
+
+      // ================= AUTO JOIN DEFAULT ROOM =================
+      await pool.query(
+        `
+        INSERT INTO room_members
+        (
+          room_id,
+          user_id,
+          last_read_at
+        )
+
+        VALUES
+        (
+          1,
+          $1,
+          NOW()
+        )
+        `,
+        [user.id]
+      );
 
       // ================= JWT =================
       const token = jwt.sign(
