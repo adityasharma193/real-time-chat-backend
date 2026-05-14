@@ -1,213 +1,305 @@
-import React, { useState } from "react";
+import React, {
+  useState,
+} from "react";
+
 import {
   loginAPI,
   registerAPI,
-  verifyOtpAPI,
-  resendOtpAPI,
 } from "../services/api";
-import { useTheme } from "../ThemeContext";
 
-export default function Login({ onSuccess }) {
-  const [mode, setMode] = useState("login");
+import {
+  useTheme,
+} from "../ThemeContext";
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    otp: "",
-  });
+export default function Login({
+  onSuccess,
+}) {
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
+  const [mode, setMode] =
+    useState("login");
 
-  const { dark, setDark } = useTheme();
+  const [form, setForm] =
+    useState({
+      name: "",
+      email: "",
+      password: "",
+    });
 
+  const [error, setError] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const { dark, setDark } =
+    useTheme();
+
+  // ================= CHANGE =================
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+
+    setForm({
+      ...form,
+      [e.target.name]:
+        e.target.value,
+    });
+
     setError("");
   };
 
   // ================= LOGIN =================
-  const handleLogin = async () => {
-    try {
-      setLoading(true);
+  const handleLogin =
+    async () => {
 
-      const data = await loginAPI(form.email, form.password);
+      try {
 
-      localStorage.setItem("token", data.token);
+        setLoading(true);
 
-      const name = form.email.split("@")[0];
-      localStorage.setItem("user", JSON.stringify({ email: form.email, name }));
+        const data =
+          await loginAPI(
+            form.email,
+            form.password
+          );
 
-      onSuccess(data.token);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+        localStorage.setItem(
+          "token",
+          data.token
+        );
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            data.user
+          )
+        );
+
+        onSuccess(
+          data.token
+        );
+
+      } catch (err) {
+
+        setError(
+          err.message
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
 
   // ================= REGISTER =================
-  const handleRegister = async () => {
-    try {
-      setLoading(true);
+  const handleRegister =
+    async () => {
 
-      await registerAPI(form.name, form.email, form.password);
+      try {
 
-      alert("OTP sent to your email");
+        setLoading(true);
 
-      setMode("verify");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const data =
+          await registerAPI(
+            form.name,
+            form.email,
+            form.password
+          );
 
-  // ================= VERIFY =================
-  const handleVerify = async () => {
-    try {
-      setLoading(true);
+        localStorage.setItem(
+          "token",
+          data.token
+        );
 
-      await verifyOtpAPI(form.email, form.otp);
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            data.user
+          )
+        );
 
-      alert("Verified! Now login.");
-      setMode("login");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+        onSuccess(
+          data.token
+        );
 
-  // ================= RESEND OTP =================
-  const handleResend = async () => {
-    try {
-      setResendLoading(true);
+      } catch (err) {
 
-      await resendOtpAPI(form.email);
+        setError(
+          err.message
+        );
 
-      alert("OTP resent to your email");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setResendLoading(false);
-    }
-  };
+      } finally {
 
-  // ================= ENTER KEY =================
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
+        setLoading(false);
+      }
+    };
 
-      if (mode === "login") handleLogin();
-      else if (mode === "register") handleRegister();
-      else handleVerify();
-    }
-  };
+  // ================= ENTER =================
+  const handleKeyDown =
+    (e) => {
+
+      if (e.key === "Enter") {
+
+        e.preventDefault();
+
+        if (
+          mode === "login"
+        ) {
+
+          handleLogin();
+
+        } else {
+
+          handleRegister();
+        }
+      }
+    };
+
+  // ================= GOOGLE LOGIN =================
+  const handleGoogleLogin =
+    () => {
+
+      window.location.href =
+        "https://real-time-chat-backend-0q4t.onrender.com/api/auth/google";
+    };
 
   return (
-    <div className={`h-screen flex items-center justify-center ${dark ? "bg-gray-900 text-white" : "bg-gray-100"}`}>
+    <div
+      className={`h-screen flex items-center justify-center ${
+        dark
+          ? "bg-gray-900 text-white"
+          : "bg-gray-100"
+      }`}
+    >
 
-      {/* THEME BUTTON */}
+      {/* THEME */}
       <button
-        onClick={() => setDark(!dark)}
+        onClick={() =>
+          setDark(!dark)
+        }
+
         className="absolute top-4 right-4 bg-blue-500 px-3 py-1 rounded text-white"
       >
-        {dark ? "Light" : "Dark"}
+        {dark
+          ? "Light"
+          : "Dark"}
       </button>
 
+      {/* CARD */}
       <div className="bg-white dark:bg-gray-800 p-6 rounded w-80 shadow">
 
         <h2 className="text-xl mb-4 text-center capitalize">
           {mode}
         </h2>
 
-        {error && <div className="text-red-500 mb-2">{error}</div>}
+        {error && (
+          <div className="text-red-500 mb-2 text-sm">
+            {error}
+          </div>
+        )}
 
-        {mode === "register" && (
+        {/* NAME */}
+        {mode ===
+          "register" && (
           <input
             name="name"
             placeholder="Name"
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
+            onChange={
+              handleChange
+            }
+            onKeyDown={
+              handleKeyDown
+            }
             className="w-full mb-2 p-2 rounded bg-gray-200 dark:bg-gray-700"
           />
         )}
 
+        {/* EMAIL */}
         <input
           name="email"
           placeholder="Email"
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
+          onChange={
+            handleChange
+          }
+          onKeyDown={
+            handleKeyDown
+          }
           className="w-full mb-2 p-2 rounded bg-gray-200 dark:bg-gray-700"
         />
 
-        {mode !== "verify" && (
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            className="w-full mb-2 p-2 rounded bg-gray-200 dark:bg-gray-700"
-          />
-        )}
+        {/* PASSWORD */}
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          onChange={
+            handleChange
+          }
+          onKeyDown={
+            handleKeyDown
+          }
+          className="w-full mb-3 p-2 rounded bg-gray-200 dark:bg-gray-700"
+        />
 
-        {mode === "verify" && (
-          <>
-            <input
-              name="otp"
-              placeholder="Enter OTP"
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              className="w-full mb-2 p-2 rounded bg-gray-200 dark:bg-gray-700"
-            />
-
-            {/* 🔥 RESEND BUTTON */}
-            <button
-              onClick={handleResend}
-              disabled={resendLoading}
-              className="text-sm text-blue-500 hover:underline mb-2"
-            >
-              {resendLoading ? "Resending..." : "Resend OTP"}
-            </button>
-          </>
-        )}
-
+        {/* LOGIN/REGISTER */}
         <button
           onClick={
             mode === "login"
               ? handleLogin
-              : mode === "register"
-              ? handleRegister
-              : handleVerify
+              : handleRegister
           }
+
           disabled={loading}
+
           className="w-full bg-blue-500 text-white py-2 rounded"
         >
           {loading
             ? "Please wait..."
             : mode === "login"
             ? "Login"
-            : mode === "register"
-            ? "Register"
-            : "Verify OTP"}
+            : "Register"}
         </button>
 
-        <div className="text-sm mt-3 text-center">
-          {mode === "login" && (
+        {/* DIVIDER */}
+        <div className="text-center text-sm my-3 opacity-70">
+          OR
+        </div>
+
+        {/* GOOGLE LOGIN */}
+        <button
+          onClick={
+            handleGoogleLogin
+          }
+
+          className="w-full bg-white text-black py-2 rounded border"
+        >
+          Continue with Google
+        </button>
+
+        {/* SWITCH */}
+        <div className="text-sm mt-4 text-center">
+
+          {mode ===
+          "login" ? (
+
             <span
-              onClick={() => setMode("register")}
+              onClick={() =>
+                setMode(
+                  "register"
+                )
+              }
+
               className="cursor-pointer text-blue-500"
             >
               Create account
             </span>
-          )}
-          {mode === "register" && (
+
+          ) : (
+
             <span
-              onClick={() => setMode("login")}
+              onClick={() =>
+                setMode(
+                  "login"
+                )
+              }
+
               className="cursor-pointer text-blue-500"
             >
               Back to login
