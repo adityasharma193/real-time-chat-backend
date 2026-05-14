@@ -4,66 +4,28 @@ import React, {
 } from "react";
 
 import {
-  BrowserRouter,
   Routes,
   Route,
-  useNavigate,
+  Navigate,
 } from "react-router-dom";
 
 import Login from "./components/Login";
-
 import Sidebar from "./components/sidebar/Sidebar";
-
 import Chat from "./components/chat/Chat";
+import OAuthSuccess from "./pages/OAuthSuccess";
 
-import { getRooms } from "./services/api";
+import {
+  getRooms,
+} from "./services/api";
 
-import { disconnectSocket } from "./services/socket";
+import {
+  disconnectSocket,
+} from "./services/socket";
 
-// ================= OAUTH SUCCESS PAGE =================
-function OAuthSuccess({ setToken }) {
+function ChatApp() {
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    const token =
-      params.get("token");
-
-    if (token) {
-
-      localStorage.setItem(
-        "token",
-        token
-      );
-
-      setToken(token);
-
-      navigate("/");
-    }
-
-  }, []);
-
-  return (
-    <div className="h-screen flex items-center justify-center bg-gray-900 text-white">
-      Logging in with Google...
-    </div>
-  );
-}
-
-// ================= MAIN CHAT APP =================
-function MainApp() {
-
-  const [token, setToken] = useState(
-    localStorage.getItem("token")
-  );
-
-  const [rooms, setRooms] = useState([]);
+  const [rooms, setRooms] =
+    useState([]);
 
   const [activeRoom, setActiveRoom] =
     useState(null);
@@ -75,11 +37,6 @@ function MainApp() {
 
       const data =
         await getRooms();
-
-      console.log(
-        "APP DATA:",
-        data
-      );
 
       const formatted =
         (data.rooms || []).map(
@@ -105,13 +62,11 @@ function MainApp() {
   // ================= INITIAL LOAD =================
   useEffect(() => {
 
-    if (!token) return;
-
     loadRooms();
 
-  }, [token]);
+  }, []);
 
-  // ================= AUTO SELECT ROOM =================
+  // ================= AUTO SELECT =================
   useEffect(() => {
 
     if (
@@ -119,9 +74,7 @@ function MainApp() {
       !activeRoom
     ) {
 
-      setActiveRoom(
-        rooms[0]
-      );
+      setActiveRoom(rooms[0]);
     }
 
   }, [rooms, activeRoom]);
@@ -139,38 +92,12 @@ function MainApp() {
 
     disconnectSocket();
 
-    setToken(null);
-
-    setRooms([]);
-
-    setActiveRoom(null);
+    window.location.href = "/";
   };
 
-  // ================= LOGIN PAGE =================
-  if (!token) {
-
-    return (
-      <Login
-        onSuccess={(newToken) => {
-
-          localStorage.setItem(
-            "token",
-            newToken
-          );
-
-          setToken(
-            newToken
-          );
-        }}
-      />
-    );
-  }
-
-  // ================= MAIN APP =================
   return (
     <div className="h-screen flex bg-gray-900 text-white">
 
-      {/* SIDEBAR */}
       <Sidebar
         rooms={rooms}
         activeRoom={activeRoom}
@@ -182,9 +109,7 @@ function MainApp() {
         }
       />
 
-      {/* CHAT */}
       <Chat
-        token={token}
         roomId={
           activeRoom?.id
         }
@@ -194,42 +119,43 @@ function MainApp() {
   );
 }
 
-// ================= ROOT APP =================
-function App() {
+export default function App() {
 
-  const [token, setToken] =
-    useState(
-      localStorage.getItem(
-        "token"
-      )
+  const token =
+    localStorage.getItem(
+      "token"
     );
 
   return (
 
-    <BrowserRouter>
+    <Routes>
 
-      <Routes>
+      {/* GOOGLE SUCCESS */}
+      <Route
+        path="/oauth-success"
+        element={<OAuthSuccess />}
+      />
 
-        <Route
-          path="/"
-          element={<MainApp />}
-        />
+      {/* MAIN APP */}
+      <Route
+        path="/"
+        element={
+          token
+            ? <ChatApp />
+            : (
+              <Login />
+            )
+        }
+      />
 
-        <Route
-          path="/oauth-success"
-          element={
-            <OAuthSuccess
-              setToken={
-                setToken
-              }
-            />
-          }
-        />
+      {/* FALLBACK */}
+      <Route
+        path="*"
+        element={
+          <Navigate to="/" />
+        }
+      />
 
-      </Routes>
-
-    </BrowserRouter>
+    </Routes>
   );
 }
-
-export default App;
