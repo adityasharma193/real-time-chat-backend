@@ -3,6 +3,7 @@ import axios from "axios";
 const API_URL =
   process.env.REACT_APP_API_URL ||
   "http://localhost:5000/api";
+
 // ================= TOKEN HEADERS =================
 const authHeaders = () => {
   const token = localStorage.getItem("token");
@@ -23,7 +24,10 @@ export const getRooms = async () => {
       authHeaders()
     );
 
-    console.log("ROOMS RESPONSE:", res.data);
+    console.log(
+      "ROOMS RESPONSE:",
+      res.data
+    );
 
     return res.data;
 
@@ -43,11 +47,14 @@ export const getMessages = async (roomId) => {
   try {
 
     const res = await axios.get(
-      `${API_URL}/rooms/${roomId}/messages`,
+      `${API_URL}/messages/${roomId}`,
       authHeaders()
     );
 
-    console.log("MESSAGES RESPONSE:", res.data);
+    console.log(
+      "MESSAGES RESPONSE:",
+      res.data
+    );
 
     return res.data;
 
@@ -98,34 +105,16 @@ export const registerAPI = async (
   return res.data;
 };
 
-// ================= VERIFY OTP =================
-export const verifyOtpAPI = async (
-  email,
-  otp
-) => {
+// ================= GOOGLE LOGIN =================
+export const googleLogin = () => {
 
-  const res = await axios.post(
-    `${API_URL}/auth/verify-otp`,
-    {
-      email,
-      otp,
-    }
-  );
-
-  return res.data;
+  window.location.href =
+    `${API_URL}/auth/google`;
 };
 
-// ================= RESEND OTP =================
-export const resendOtpAPI = async (
-  email
-) => {
+// ================= LOGOUT =================
+export const logoutAPI = () => {
 
-  const res = await axios.post(
-    `${API_URL}/auth/resend-otp`,
-    {
-      email,
-    }
-  );
-
-  return res.data;
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 };
