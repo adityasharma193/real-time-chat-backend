@@ -1,98 +1,77 @@
 const express = require("express");
+
 const router = express.Router();
+
 const pool = require("../config/db");
-const authMiddleware = require("../authMiddleware");
 
-// ================= GET ROOMS =================
-router.get("/", authMiddleware, async (req, res) => {
-  try {
+const authMiddleware =
+  require("../authMiddleware");
 
-    const userId = req.user.userId;
-
-    const result = await pool.query(
-      `
-      SELECT 
-        r.id,
-        r.name,
-
-        COALESCE(COUNT(m.id), 0)::int AS unread_count
-
-      FROM rooms r
-
-      JOIN room_members rm
-        ON rm.room_id = r.id
-
-      LEFT JOIN messages m
-        ON m.room_id = r.id
-        AND (
-          rm.last_read_at IS NULL
-          OR m.created_at > rm.last_read_at
-        )
-
-      WHERE rm.user_id = $1
-
-      GROUP BY r.id, r.name
-
-      ORDER BY r.id
-      `,
-      [userId]
-    );
-
-    res.json({
-      rooms: result.rows
-    });
-
-  } catch (err) {
-
-    console.error("ROOMS ERROR:", err);
-
-    res.status(500).json({
-      error: "Failed to load rooms"
-    });
-  }
-});
-
-// ================= GET MESSAGES =================
+// ================= GET USER ROOMS =================
 router.get(
-  "/:roomId/messages",
+  "/",
+
   authMiddleware,
+
   async (req, res) => {
 
     try {
 
-      const { roomId } = req.params;
+      const userId =
+        req.user.userId;
 
-      const result = await pool.query(
-        `
-        SELECT
-          messages.id,
-          messages.text,
-          messages.status,
-          messages.created_at AS "createdAt",
-          users.name
+      // ================= GET USER ROOMS =================
+      const result =
+        await pool.query(
+          `
+          SELECT
+            rooms.id,
+            rooms.name,
 
-        FROM messages
+            COALESCE(
+              COUNT(messages.id)
+              FILTER (
+                WHERE messages.created_at >
+                room_members.last_read_at
+              ),
+              0
+            ) AS unread_count
 
-        JOIN users
-          ON users.id = messages.user_id
+          FROM room_members
 
-        WHERE messages.room_id = $1
+          JOIN rooms
+          ON rooms.id = room_members.room_id
 
-        ORDER BY messages.created_at ASC
-        `,
-        [roomId]
-      );
+          LEFT JOIN messages
+          ON messages.room_id = rooms.id
+
+          WHERE room_members.user_id = $1
+
+          GROUP BY
+            rooms.id,
+            rooms.name,
+            room_members.last_read_at
+
+          ORDER BY rooms.id ASC
+          `,
+          [userId]
+        );
 
       res.json({
-        messages: result.rows
+        success: true,
+        rooms: result.rows,
       });
 
     } catch (err) {
 
-      console.error("MESSAGES ERROR:", err);
+      console.error(
+        "GET ROOMS ERROR:",
+        err
+      );
 
       res.status(500).json({
-        error: "Failed to load messages"
+        error:
+          "Failed to load rooms",
       });
     }
   }
