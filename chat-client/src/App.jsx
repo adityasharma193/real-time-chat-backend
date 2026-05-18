@@ -10,8 +10,11 @@ import {
 } from "react-router-dom";
 
 import Login from "./components/Login";
+
 import Sidebar from "./components/sidebar/Sidebar";
+
 import Chat from "./components/chat/Chat";
+
 import OAuthSuccess from "./pages/OAuthSuccess";
 
 import {
@@ -22,7 +25,11 @@ import {
   disconnectSocket,
 } from "./services/socket";
 
-function ChatApp() {
+// ================= CHAT APP =================
+function ChatApp({
+  token,
+  setToken,
+}) {
 
   const [rooms, setRooms] =
     useState([]);
@@ -31,42 +38,48 @@ function ChatApp() {
     useState(null);
 
   // ================= LOAD ROOMS =================
-  const loadRooms = async () => {
+  const loadRooms =
+    async () => {
 
-    try {
+      try {
 
-      const data =
-        await getRooms();
+        const data =
+          await getRooms();
 
-      const formatted =
-        (data.rooms || []).map(
-          (r) => ({
-            id: r.id,
-            name: r.name,
-            unread_count:
-              r.unread_count || 0,
-          })
+        const formatted =
+          (data.rooms || []).map(
+            (r) => ({
+              id: r.id,
+              name: r.name,
+              unread_count:
+                r.unread_count || 0,
+            })
+          );
+
+        setRooms(
+          formatted
         );
 
-      setRooms(formatted);
+      } catch (err) {
 
-    } catch (err) {
-
-      console.error(
-        "Failed to load rooms:",
-        err
-      );
-    }
-  };
+        console.error(
+          "Failed to load rooms:",
+          err
+        );
+      }
+    };
 
   // ================= INITIAL LOAD =================
   useEffect(() => {
 
-    loadRooms();
+    if (token) {
 
-  }, []);
+      loadRooms();
+    }
 
-  // ================= AUTO SELECT =================
+  }, [token]);
+
+  // ================= AUTO SELECT ROOM =================
   useEffect(() => {
 
     if (
@@ -74,33 +87,40 @@ function ChatApp() {
       !activeRoom
     ) {
 
-      setActiveRoom(rooms[0]);
+      setActiveRoom(
+        rooms[0]
+      );
     }
 
   }, [rooms, activeRoom]);
 
   // ================= LOGOUT =================
-  const handleLogout = () => {
+  const handleLogout =
+    () => {
 
-    localStorage.removeItem(
-      "token"
-    );
+      localStorage.removeItem(
+        "token"
+      );
 
-    localStorage.removeItem(
-      "user"
-    );
+      localStorage.removeItem(
+        "user"
+      );
 
-    disconnectSocket();
+      disconnectSocket();
 
-    window.location.href = "/";
-  };
+      setToken(null);
+    };
 
   return (
-    <div className="h-screen flex bg-gray-900 text-white">
 
+    <div className="h-screen flex bg-[#020617] text-white overflow-hidden">
+
+      {/* SIDEBAR */}
       <Sidebar
         rooms={rooms}
-        activeRoom={activeRoom}
+        activeRoom={
+          activeRoom
+        }
         setActiveRoom={
           setActiveRoom
         }
@@ -109,7 +129,9 @@ function ChatApp() {
         }
       />
 
+      {/* CHAT */}
       <Chat
+        token={token}
         roomId={
           activeRoom?.id
         }
@@ -119,11 +141,14 @@ function ChatApp() {
   );
 }
 
+// ================= MAIN APP =================
 export default function App() {
 
-  const token =
-    localStorage.getItem(
-      "token"
+  const [token, setToken] =
+    useState(
+      localStorage.getItem(
+        "token"
+      )
     );
 
   return (
@@ -133,18 +158,43 @@ export default function App() {
       {/* GOOGLE SUCCESS */}
       <Route
         path="/oauth-success"
-        element={<OAuthSuccess />}
+        element={
+          <OAuthSuccess />
+        }
       />
 
-      {/* MAIN APP */}
+      {/* MAIN */}
       <Route
         path="/"
         element={
-          token
-            ? <ChatApp />
-            : (
-              <Login />
-            )
+
+          token ? (
+
+            <ChatApp
+              token={token}
+              setToken={
+                setToken
+              }
+            />
+
+          ) : (
+
+            <Login
+              onSuccess={(
+                newToken
+              ) => {
+
+                localStorage.setItem(
+                  "token",
+                  newToken
+                );
+
+                setToken(
+                  newToken
+                );
+              }}
+            />
+          )
         }
       />
 
