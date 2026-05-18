@@ -4,69 +4,17 @@ const API_URL =
   process.env.REACT_APP_API_URL ||
   "http://localhost:5000/api";
 
-// ================= TOKEN HEADERS =================
+// ================= AUTH HEADERS =================
 const authHeaders = () => {
-  const token = localStorage.getItem("token");
+
+  const token =
+    localStorage.getItem("token");
 
   return {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   };
-};
-
-// ================= GET ROOMS =================
-export const getRooms = async () => {
-  try {
-
-    const res = await axios.get(
-      `${API_URL}/rooms`,
-      authHeaders()
-    );
-
-    console.log(
-      "ROOMS RESPONSE:",
-      res.data
-    );
-
-    return res.data;
-
-  } catch (err) {
-
-    console.error(
-      "getRooms error:",
-      err.response?.data || err.message
-    );
-
-    return { rooms: [] };
-  }
-};
-
-// ================= GET MESSAGES =================
-export const getMessages = async (roomId) => {
-  try {
-
-    const res = await axios.get(
-      `${API_URL}/messages/${roomId}`,
-      authHeaders()
-    );
-
-    console.log(
-      "MESSAGES RESPONSE:",
-      res.data
-    );
-
-    return res.data;
-
-  } catch (err) {
-
-    console.error(
-      "getMessages error:",
-      err.response?.data || err.message
-    );
-
-    return { messages: [] };
-  }
 };
 
 // ================= LOGIN =================
@@ -105,16 +53,26 @@ export const registerAPI = async (
   return res.data;
 };
 
-// ================= GOOGLE LOGIN =================
-export const googleLogin = () => {
+// ================= GET ROOMS =================
+export const getRooms = async () => {
 
-  window.location.href =
-    `${API_URL}/auth/google`;
+  const res = await axios.get(
+    `${API_URL}/rooms`,
+    authHeaders()
+  );
+
+  return res.data;
 };
 
-// ================= LOGOUT =================
-export const logoutAPI = () => {
+// ================= GET MESSAGES =================
+export const getMessages = async (
+  roomId
+) => {
 
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  const res = await axios.get(
+    `${API_URL}/messages/${roomId}`,
+    authHeaders()
+  );
+
+  return res.data;
 };
