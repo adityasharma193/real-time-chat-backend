@@ -5,16 +5,22 @@ const http = require("http");
 const { Server } =
   require("socket.io");
 
-const app = require("./app");
+const jwt =
+  require("jsonwebtoken");
+
+const app =
+  require("./app");
 
 const pool =
   require("./config/db");
 
-const jwt =
-  require("jsonwebtoken");
-
+// ================= CREATE SERVER =================
 const server =
   http.createServer(app);
+
+// ================= ONLINE USERS =================
+const onlineUsers =
+  new Map();
 
 // ================= SOCKET SERVER =================
 const io =
@@ -42,15 +48,12 @@ io.use((socket, next) => {
   try {
 
     const token =
-      socket.handshake.auth
-        ?.token;
+      socket.handshake.auth?.token;
 
     if (!token) {
 
       return next(
-        new Error(
-          "No token"
-        )
+        new Error("No token")
       );
     }
 
@@ -67,28 +70,37 @@ io.use((socket, next) => {
 
   } catch (err) {
 
-    next(
-      new Error(
-        "Invalid token"
-      )
+    return next(
+      new Error("Invalid token")
     );
   }
 });
 
-// ================= SOCKET EVENTS =================
+// ================= SOCKET CONNECTION =================
 io.on(
   "connection",
 
   (socket) => {
 
     console.log(
-      "SOCKET CONNECTED:",
+      "✅ SOCKET CONNECTED:",
       socket.id
     );
 
     console.log(
-      "USER:",
+      "👤 USER:",
       socket.user.email
+    );
+
+    // ================= ONLINE USERS =================
+    onlineUsers.set(
+      socket.user.userId,
+      socket.id
+    );
+
+    io.emit(
+      "online-users",
+      onlineUsers.size
     );
 
     // ================= JOIN ROOM =================
@@ -102,7 +114,7 @@ io.on(
         );
 
         console.log(
-          "JOINED ROOM:",
+          "📦 JOINED ROOM:",
           roomId
         );
       }
@@ -120,7 +132,8 @@ io.on(
         try {
 
           if (
-            !text?.trim()
+            !text ||
+            !text.trim()
           ) {
 
             return;
@@ -158,7 +171,7 @@ io.on(
           const message =
             result.rows[0];
 
-          // get username
+          // fetch username
           const user =
             await pool.query(
               `
@@ -171,7 +184,7 @@ io.on(
               ]
             );
 
-          // realtime emit
+          // emit realtime
           io.to(
             String(roomId)
           ).emit(
@@ -197,8 +210,7 @@ io.on(
                 message.created_at,
 
               name:
-                user.rows[0]
-                  ?.name
+                user.rows[0]?.name
                 || "User",
 
               reactions: [],
@@ -208,125 +220,127 @@ io.on(
         } catch (err) {
 
           console.error(
-            "SEND MESSAGE ERROR:",
+            "❌ SEND MESSAGE ERROR:",
             err
           );
         }
       }
     );
 
-    // ================= REACTION =================
+    // ================= REACTIONS =================
     socket.on(
-  "add-reaction",
+      "add-reaction",
 
-  async ({
-    messageId,
-    emoji,
-    roomId,
-  }) => {
+      async ({
+        messageId,
+        emoji,
+        roomId,
+      }) => {
 
-    try {
+        try {
 
-      // CHECK EXISTING
-      const existing =
-        await pool.query(
-          `
-          SELECT *
-          FROM reactions
-          WHERE
-            message_id = $1
-            AND user_id = $2
-            AND emoji = $3
-          `,
-          [
-            messageId,
-            socket.user.userId,
-            emoji,
-          ]
-        );
+          // check existing reaction
+          const existing =
+            await pool.query(
+              `
+              SELECT *
+              FROM reactions
+              WHERE
+                message_id = $1
+                AND user_id = $2
+                AND emoji = $3
+              `,
+              [
+                messageId,
+                socket.user.userId,
+                emoji,
+              ]
+            );
 
-      // REMOVE IF EXISTS
-      if (existing.rows.length > 0) {
+          // remove existing
+          if (
+            existing.rows.length > 0
+          ) {
 
-        await pool.query(
-          `
-          DELETE FROM reactions
-          WHERE
-            message_id = $1
-            AND user_id = $2
-            AND emoji = $3
-          `,
-          [
-            messageId,
-            socket.user.userId,
-            emoji,
-          ]
-        );
+            await pool.query(
+              `
+              DELETE FROM reactions
+              WHERE
+                message_id = $1
+                AND user_id = $2
+                AND emoji = $3
+              `,
+              [
+                messageId,
+                socket.user.userId,
+                emoji,
+              ]
+            );
 
-      } else {
+          } else {
 
-        // INSERT NEW
-        await pool.query(
-          `
-          INSERT INTO reactions
-          (
-            message_id,
-            user_id,
-            emoji
-          )
+            // insert new
+            await pool.query(
+              `
+              INSERT INTO reactions
+              (
+                message_id,
+                user_id,
+                emoji
+              )
 
-          VALUES
-          (
-            $1,
-            $2,
-            $3
-          )
-          `,
-          [
-            messageId,
-            socket.user.userId,
-            emoji,
-          ]
-        );
-      }
+              VALUES
+              (
+                $1,
+                $2,
+                $3
+              )
+              `,
+              [
+                messageId,
+                socket.user.userId,
+                emoji,
+              ]
+            );
+          }
 
-      // GET UPDATED COUNTS
-      const result =
-        await pool.query(
-          `
-          SELECT
-            emoji,
-            COUNT(*)::int AS count
+          // updated counts
+          const result =
+            await pool.query(
+              `
+              SELECT
+                emoji,
+                COUNT(*)::int AS count
 
-          FROM reactions
+              FROM reactions
 
-          WHERE message_id = $1
+              WHERE message_id = $1
 
-          GROUP BY emoji
-          `,
-          [messageId]
-        );
+              GROUP BY emoji
+              `,
+              [messageId]
+            );
 
-      io.to(
-        String(roomId)
-      ).emit(
-        "reaction-update",
-        {
-          messageId,
-          reactions:
-            result.rows,
+          io.to(
+            String(roomId)
+          ).emit(
+            "reaction-update",
+            {
+              messageId,
+              reactions:
+                result.rows,
+            }
+          );
+
+        } catch (err) {
+
+          console.error(
+            "❌ REACTION ERROR:",
+            err
+          );
         }
-      );
-
-    } catch (err) {
-
-      console.error(
-        "REACTION ERROR:",
-        err
-      );
-    }
-  }
-);
+      }
+    );
 
     // ================= TYPING =================
     socket.on(
@@ -370,7 +384,17 @@ io.on(
       () => {
 
         console.log(
-          "USER DISCONNECTED"
+          "❌ USER DISCONNECTED:",
+          socket.user.email
+        );
+
+        onlineUsers.delete(
+          socket.user.userId
+        );
+
+        io.emit(
+          "online-users",
+          onlineUsers.size
         );
       }
     );

@@ -29,6 +29,11 @@ export default function Chat({
   const messagesEndRef =
     useRef(null);
 
+  const user =
+    JSON.parse(
+      localStorage.getItem("user")
+    );
+
   // ================= LOAD HISTORY =================
   useEffect(() => {
 
@@ -65,7 +70,6 @@ export default function Chat({
     const socket =
       connectSocket(token);
 
-    // join room
     socket.emit(
       "join-room",
       roomId
@@ -103,7 +107,7 @@ export default function Chat({
       handleMessage
     );
 
-    // ================= REACTIONS =================
+    // ================= REACTION UPDATE =================
     socket.on(
       "reaction-update",
 
@@ -253,82 +257,180 @@ export default function Chat({
 
   return (
 
-    <div className="flex-1 flex flex-col bg-gray-900 text-white">
+    <div className="flex-1 flex flex-col bg-[#020817] text-white">
 
       {/* HEADER */}
-      <div className="h-14 border-b border-gray-700 flex items-center px-4 font-semibold">
-        Room #{roomId}
+      <div className="h-20 border-b border-slate-800 px-6 flex items-center justify-between bg-slate-900/70 backdrop-blur-lg">
+
+        <div>
+
+          <h2 className="text-2xl font-bold">
+            Room #{roomId}
+          </h2>
+
+          <p className="text-slate-400 text-sm">
+            Real-time chat room
+          </p>
+
+        </div>
+
       </div>
 
       {/* MESSAGES */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-        {messages.map((msg) => (
+        {messages.map((msg) => {
 
-          <div
-            key={msg.id}
-            className="bg-gray-800 p-3 rounded-lg"
-          >
+          const isMine =
+            msg.userId === user?.id;
 
-            {/* NAME */}
-            <div className="text-sm text-blue-400 mb-1">
-              {msg.name}
+          return (
+
+            <div
+              key={msg.id}
+
+              className={`
+                flex
+                ${
+                  isMine
+                    ? "justify-end"
+                    : "justify-start"
+                }
+              `}
+            >
+
+              <div
+                className={`
+                  max-w-[75%]
+                  rounded-3xl
+                  p-5
+                  shadow-lg
+                  border
+                  transition
+                  duration-300
+
+                  ${
+                    isMine
+                      ? `
+                        bg-gradient-to-br
+                        from-blue-600
+                        to-indigo-700
+                        border-blue-500
+                      `
+                      : `
+                        bg-slate-800/80
+                        backdrop-blur-lg
+                        border-slate-700
+                      `
+                  }
+                `}
+              >
+
+                {/* NAME */}
+                <div
+                  className={`
+                    text-sm
+                    mb-2
+                    font-semibold
+
+                    ${
+                      isMine
+                        ? "text-blue-100"
+                        : "text-blue-400"
+                    }
+                  `}
+                >
+                  {msg.name}
+                </div>
+
+                {/* TEXT */}
+                <div className="text-[16px] leading-relaxed break-words">
+                  {msg.text}
+                </div>
+
+                {/* TIME */}
+                <div className="text-xs text-slate-300 mt-3">
+                  {new Date(
+                    msg.createdAt
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+
+                {/* REACTIONS */}
+                <div className="flex flex-wrap gap-2 mt-4">
+
+                  {(msg.reactions || [])
+                    .map((r, i) => (
+
+                      <button
+                        key={i}
+
+                        className="
+                          text-sm
+                          bg-black/20
+                          border
+                          border-white/10
+                          px-3
+                          py-1
+                          rounded-xl
+                        "
+                      >
+                        {r.emoji}
+                        {" "}
+                        {r.count}
+                      </button>
+                    ))}
+
+                  {[
+                    "👍",
+                    "❤️",
+                    "😂",
+                    "🔥",
+                    "😮",
+                    "😢",
+                    "👏",
+                    "🎉",
+                  ].map((emoji) => (
+
+                    <button
+                      key={emoji}
+
+                      onClick={() =>
+                        addReaction(
+                          msg.id,
+                          emoji
+                        )
+                      }
+
+                      className="
+                        text-sm
+                        bg-slate-700
+                        hover:bg-blue-600
+                        px-3
+                        py-1
+                        rounded-xl
+                        transition
+                        duration-200
+                      "
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+
+                </div>
+
+              </div>
+
             </div>
+          );
+        })}
 
-            {/* TEXT */}
-            <div>
-              {msg.text}
-            </div>
-
-            {/* REACTIONS */}
-            <div className="flex gap-2 mt-2">
-
-              {(msg.reactions || [])
-                .map((r, i) => (
-
-                  <button
-                    key={i}
-                    className="text-sm bg-gray-700 px-2 py-1 rounded"
-                  >
-                    {r.emoji}
-                    {" "}
-                    {r.count}
-                  </button>
-                ))}
-
-              {[
-  "👍",
-  "❤️",
-  "😂",
-  "🔥",
-  "😮",
-  "😢",
-  "👏",
-  "🎉",
-].map((emoji) => (
-
-  <button
-    key={emoji}
-
-    onClick={() =>
-      addReaction(
-        msg.id,
-        emoji
-      )
-    }
-
-    className="text-sm bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition"
-  >
-    {emoji}
-  </button>
-))}
-
-            </div>
-          </div>
-        ))}
-
+        {/* TYPING */}
         {typing && (
-          <div className="text-sm text-gray-400">
+
+          <div className="text-sm text-slate-400 italic">
             Someone is typing...
           </div>
         )}
@@ -338,7 +440,7 @@ export default function Chat({
       </div>
 
       {/* INPUT */}
-      <div className="p-4 border-t border-gray-700 flex gap-2">
+      <div className="p-5 border-t border-slate-800 bg-slate-900/70 backdrop-blur-lg flex gap-3">
 
         <input
           value={text}
@@ -375,7 +477,19 @@ export default function Chat({
 
           placeholder="Type a message..."
 
-          className="flex-1 bg-gray-800 rounded px-3 py-2 outline-none"
+          className="
+            flex-1
+            bg-slate-800
+            border
+            border-slate-700
+            focus:border-blue-500
+            rounded-2xl
+            px-5
+            py-4
+            outline-none
+            text-white
+            transition
+          "
         />
 
         <button
@@ -383,7 +497,18 @@ export default function Chat({
             sendMessage
           }
 
-          className="bg-blue-500 hover:bg-blue-600 px-4 rounded"
+          className="
+            px-7
+            rounded-2xl
+            font-semibold
+            bg-gradient-to-r
+            from-blue-600
+            to-indigo-700
+            hover:scale-105
+            transition
+            duration-200
+            shadow-lg
+          "
         >
           Send
         </button>

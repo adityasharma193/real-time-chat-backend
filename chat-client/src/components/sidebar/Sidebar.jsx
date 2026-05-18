@@ -1,124 +1,173 @@
-import { useEffect, useMemo, useState } from "react";
-import { getSocket } from "../../services/socket";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  getSocket,
+} from "../../services/socket";
 
 export default function Sidebar({
-  rooms = [],
+  rooms,
   activeRoom,
   setActiveRoom,
-  unread = {},          // 🔥 from App.jsx
   onLogout,
 }) {
-  const [onlineUsers, setOnlineUsers] = useState([]);
 
-  // ================= USER =================
-  const user = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("user"));
-    } catch {
-      return null;
-    }
-  }, []);
+  const [onlineCount, setOnlineCount] =
+    useState(0);
 
-  // ================= SOCKET (ONLINE USERS) =================
+  const user =
+    JSON.parse(
+      localStorage.getItem("user")
+    );
+
+  // ================= ONLINE USERS =================
   useEffect(() => {
-    const socket = getSocket();
+
+    const socket =
+      getSocket();
+
     if (!socket) return;
 
-    const handleOnlineList = (list) => setOnlineUsers(list);
+    socket.on(
+      "online-users",
+      (count) => {
 
-    const handleUserOnline = (userId) => {
-      setOnlineUsers((prev) =>
-        prev.includes(userId) ? prev : [...prev, userId]
-      );
-    };
-
-    const handleUserOffline = (userId) => {
-      setOnlineUsers((prev) =>
-        prev.filter((id) => id !== userId)
-      );
-    };
-
-    socket.on("online-users", handleOnlineList);
-    socket.on("user-online", handleUserOnline);
-    socket.on("user-offline", handleUserOffline);
+        setOnlineCount(count);
+      }
+    );
 
     return () => {
-      socket.off("online-users", handleOnlineList);
-      socket.off("user-online", handleUserOnline);
-      socket.off("user-offline", handleUserOffline);
+
+      socket.off(
+        "online-users"
+      );
     };
+
   }, []);
 
   return (
-    <div className="w-64 bg-gray-800 flex flex-col border-r border-gray-700">
+
+    <div className="w-[300px] bg-[#0f172a] border-r border-slate-800 flex flex-col">
 
       {/* HEADER */}
-      <div className="h-14 flex items-center justify-between px-4 font-semibold border-b border-gray-700">
-        <span>Chat App</span>
+      <div className="h-20 border-b border-slate-800 flex items-center justify-between px-5">
 
-        {/* 🔥 ONLINE COUNT */}
-        <span className="text-xs text-green-400">
-          {onlineUsers.length} online
-        </span>
+        <div>
+
+          <h1 className="text-2xl font-black text-white">
+            Chat App
+          </h1>
+
+          <p className="text-sm text-slate-400">
+            Real-time messaging
+          </p>
+
+        </div>
+
+        <div className="text-green-400 text-sm font-semibold">
+          {onlineCount} online
+        </div>
+
       </div>
 
       {/* ROOMS */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {rooms.length === 0 && (
-          <div className="text-gray-400 text-sm text-center mt-4">
-            No rooms found
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
         {rooms.map((room) => (
-          <div
+
+          <button
             key={room.id}
-            onClick={() => setActiveRoom(room)}
-            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition ${
-              activeRoom?.id === room.id
-                ? "bg-gray-700"
-                : "hover:bg-gray-700/50"
-            }`}
+
+            onClick={() =>
+              setActiveRoom(room)
+            }
+
+            className={`
+              w-full
+              text-left
+              px-4
+              py-4
+              rounded-2xl
+              transition
+              border
+
+              ${
+                activeRoom?.id === room.id
+                  ? `
+                    bg-gradient-to-r
+                    from-blue-600
+                    to-indigo-700
+                    border-blue-500
+                    shadow-lg
+                  `
+                  : `
+                    bg-slate-800/60
+                    border-slate-700
+                    hover:border-blue-500
+                    hover:bg-slate-800
+                  `
+              }
+            `}
           >
-            <span className="text-sm"># {room.name}</span>
 
-            {/* 🔥 UNREAD BADGE (FRONTEND STATE) */}
-            {unread?.[room.id] > 0 && (
-              <span className="bg-red-500 text-xs px-2 py-0.5 rounded-full">
-                {unread[room.id]}
+            <div className="flex items-center justify-between">
+
+              <span className="font-semibold text-white">
+                # {room.name}
               </span>
-            )}
-          </div>
-        ))}
-      </div>
 
-      {/* USER + LOGOUT */}
-      <div className="h-16 border-t border-gray-700 flex items-center justify-between px-4">
+              {room.unread_count > 0 && (
 
-        {/* USER INFO */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center font-semibold">
-              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {room.unread_count}
+                </span>
+              )}
+
             </div>
 
-            {/* 🔥 ONLINE DOT */}
-            <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border border-gray-800"></div>
+          </button>
+        ))}
+
+      </div>
+
+      {/* USER */}
+      <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-900">
+
+        <div className="flex items-center gap-3">
+
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center font-bold text-lg">
+
+            {user?.name
+              ?.charAt(0)
+              ?.toUpperCase() || "U"}
+
           </div>
 
-          <div className="text-sm">
-            {user?.name || "User"}
+          <div>
+
+            <div className="font-semibold text-white">
+              {user?.name}
+            </div>
+
+            <div className="text-sm text-slate-400">
+              Active now
+            </div>
+
           </div>
+
         </div>
 
-        {/* LOGOUT */}
         <button
           onClick={onLogout}
-          className="text-xs bg-red-500 px-2 py-1 rounded hover:bg-red-600 transition"
+          className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-xl text-white font-semibold transition"
         >
           Logout
         </button>
+
       </div>
+
     </div>
   );
 }
