@@ -68,11 +68,13 @@ export default function Login({
 
     } catch (err) {
 
-      setError(
-        err.response?.data?.error ||
-        "Something went wrong"
-      );
+     console.log(err.response?.data);
 
+setError(
+  err.response?.data?.error ||
+  err.message ||
+  "Something went wrong"
+);
     } finally {
 
       setLoading(false);
