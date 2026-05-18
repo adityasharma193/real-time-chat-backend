@@ -1,207 +1,258 @@
-import { useEffect, useRef, useState } from "react";
-import { connectSocket, getSocket } from "../../services/socket";
-import { getMessages } from "../../services/api";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
-const EMOJIS = ["👍", "❤️", "😂", "🔥"];
+import {
+  getMessages,
+} from "../../services/api";
 
-export default function Chat({ token, roomId }) {
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-  const [typingUsers, setTypingUsers] = useState([]);
+import {
+  connectSocket,
+  getSocket,
+} from "../../services/socket";
 
-  const bottomRef = useRef(null);
-  const userRef = useRef(null);
-  const typingTimeout = useRef(null);
+export default function Chat({
+  roomId,
+}) {
 
-  // ================= USER CACHE =================
+  const [messages, setMessages] =
+    useState([]);
+
+  const [text, setText] =
+    useState("");
+
+  const [typing, setTyping] =
+    useState(false);
+
+  const messagesEndRef =
+    useRef(null);
+
+  // ================= LOAD HISTORY =================
   useEffect(() => {
-    try {
-      userRef.current = JSON.parse(localStorage.getItem("user"));
-    } catch {
-      userRef.current = null;
-    }
-  }, []);
 
-  // ================= LOAD MESSAGES =================
-  useEffect(() => {
     if (!roomId) return;
 
-    let cancelled = false;
+    const loadMessages =
+      async () => {
 
-    const load = async () => {
-      try {
-        const data = await getMessages(roomId);
-        if (cancelled) return;
-
-        const msgs = Array.isArray(data?.messages) ? data.messages : [];
+        const data =
+          await getMessages(
+            roomId
+          );
 
         setMessages(
-          msgs.map((m) => ({
-            ...m,
-            reactions: Array.isArray(m.reactions) ? m.reactions : [],
-          }))
+          data.messages || []
         );
-      } catch (err) {
-        console.error(err);
-        if (!cancelled) setMessages([]);
-      }
-    };
+      };
 
-    load();
+    loadMessages();
 
-    return () => {
-      cancelled = true;
-    };
   }, [roomId]);
 
   // ================= SOCKET =================
   useEffect(() => {
-    if (!token || !roomId) return;
 
-    const socket = connectSocket(token);
+    const token =
+      localStorage.getItem(
+        "token"
+      );
 
-    socket.emit("join-room", roomId);
+    if (!token || !roomId)
+      return;
 
-    // 🔥 mark seen
-    socket.emit("mark-seen", roomId);
+    const socket =
+      connectSocket(token);
 
-    // -------- NEW MESSAGE --------
-    const handleNewMessage = (msg) => {
-      setMessages((prev) => {
-        const tempIndex = prev.findIndex(
-          (m) =>
-            m.isTemp &&
-            m.text === msg.text &&
-            m.name === userRef.current?.name
-        );
+    // join room
+    socket.emit(
+      "join-room",
+      roomId
+    );
 
-        if (tempIndex !== -1) {
-          const updated = [...prev];
-          updated[tempIndex] = {
-            ...msg,
-            reactions: msg.reactions || [],
-          };
-          return updated;
+    // ================= NEW MESSAGE =================
+    const handleMessage =
+      (message) => {
+
+        if (
+          Number(
+            message.roomId
+          ) !== Number(roomId)
+        ) {
+
+          return;
         }
 
-        if (prev.some((m) => m.id === msg.id)) return prev;
+        setMessages((prev) => [
 
-        return [...prev, { ...msg, reactions: msg.reactions || [] }];
-      });
-    };
+          ...prev,
 
-    // -------- REACTION --------
-    const handleReaction = ({ messageId, reactions }) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId
-            ? { ...m, reactions: reactions || [] }
-            : m
-        )
-      );
-    };
+          {
+            ...message,
 
-    // -------- SEEN --------
-    const handleSeen = ({ roomId }) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.roomId === roomId ? { ...m, status: "seen" } : m
-        )
-      );
-    };
+            reactions:
+              message.reactions
+              || [],
+          },
+        ]);
+      };
 
-    // -------- TYPING --------
-    const handleTyping = ({ userId }) => {
-      setTypingUsers((prev) =>
-        prev.includes(userId) ? prev : [...prev, userId]
-      );
-    };
+    socket.on(
+      "new-message",
+      handleMessage
+    );
 
-    const handleStopTyping = ({ userId }) => {
-      setTypingUsers((prev) =>
-        prev.filter((id) => id !== userId)
-      );
-    };
+    // ================= REACTIONS =================
+    socket.on(
+      "reaction-update",
 
-    socket.on("new-message", handleNewMessage);
-    socket.on("reaction-update", handleReaction);
-    socket.on("messages-seen", handleSeen);
-    socket.on("user-typing", handleTyping);
-    socket.on("user-stop-typing", handleStopTyping);
+      ({
+        messageId,
+        reactions,
+      }) => {
+
+        setMessages((prev) =>
+          prev.map((msg) => {
+
+            if (
+              msg.id ===
+              messageId
+            ) {
+
+              return {
+                ...msg,
+                reactions,
+              };
+            }
+
+            return msg;
+          })
+        );
+      }
+    );
+
+    // ================= TYPING =================
+    socket.on(
+      "user-typing",
+
+      () => {
+        setTyping(true);
+      }
+    );
+
+    socket.on(
+      "user-stop-typing",
+
+      () => {
+        setTyping(false);
+      }
+    );
 
     return () => {
-      socket.off("new-message", handleNewMessage);
-      socket.off("reaction-update", handleReaction);
-      socket.off("messages-seen", handleSeen);
-      socket.off("user-typing", handleTyping);
-      socket.off("user-stop-typing", handleStopTyping);
+
+      socket.off(
+        "new-message",
+        handleMessage
+      );
+
+      socket.off(
+        "reaction-update"
+      );
+
+      socket.off(
+        "user-typing"
+      );
+
+      socket.off(
+        "user-stop-typing"
+      );
     };
-  }, [token, roomId]);
+
+  }, [roomId]);
+
+  // ================= SEND =================
+  const sendMessage =
+    () => {
+
+      if (
+        !text.trim()
+      ) return;
+
+      const socket =
+        getSocket();
+
+      if (!socket) {
+
+        console.error(
+          "Socket missing"
+        );
+
+        return;
+      }
+
+      socket.emit(
+        "send-message",
+        {
+          roomId,
+          text,
+        }
+      );
+
+      setText("");
+
+      socket.emit(
+        "stop-typing",
+        roomId
+      );
+    };
+
+  // ================= ENTER =================
+  const handleKeyDown =
+    (e) => {
+
+      if (
+        e.key === "Enter"
+      ) {
+
+        sendMessage();
+      }
+    };
+
+  // ================= REACTION =================
+  const addReaction =
+    (
+      messageId,
+      emoji
+    ) => {
+
+      const socket =
+        getSocket();
+
+      if (!socket) return;
+
+      socket.emit(
+        "add-reaction",
+        {
+          messageId,
+          emoji,
+          roomId,
+        }
+      );
+    };
 
   // ================= AUTO SCROLL =================
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+
+    messagesEndRef.current
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
+
   }, [messages]);
 
-  // ================= SEND =================
-  const sendMessage = () => {
-    const socket = getSocket();
-    if (!socket || !text.trim()) return;
-
-    const tempMsg = {
-      id: "temp-" + Date.now(),
-      text,
-      createdAt: new Date(),
-      name: userRef.current?.name || "You",
-      reactions: [],
-      status: "sent",
-      isTemp: true,
-    };
-
-    setMessages((prev) => [...prev, tempMsg]);
-
-    socket.emit("send-message", { roomId, text });
-
-    setText("");
-    socket.emit("stop-typing", roomId);
-  };
-
-  // ================= INPUT =================
-  const handleChange = (e) => {
-    setText(e.target.value);
-
-    const socket = getSocket();
-    if (!socket) return;
-
-    socket.emit("typing", roomId);
-
-    clearTimeout(typingTimeout.current);
-    typingTimeout.current = setTimeout(() => {
-      socket.emit("stop-typing", roomId);
-    }, 1200);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  // ================= REACT =================
-  const react = (messageId, emoji) => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    socket.emit("add-reaction", {
-      messageId,
-      emoji,
-      roomId,
-    });
-  };
-
-  // ================= RENDER =================
   return (
+
     <div className="flex-1 flex flex-col bg-gray-900 text-white">
 
       {/* HEADER */}
@@ -210,96 +261,134 @@ export default function Chat({ token, roomId }) {
       </div>
 
       {/* MESSAGES */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
-        {messages.map((m) => {
-          const isMe = m.name === userRef.current?.name;
+        {messages.map((msg) => (
 
-          return (
-            <div
-              key={m.id}
-              className={`p-3 rounded-lg border max-w-[70%] ${
-                isMe
-                  ? "bg-blue-600 self-end border-blue-500"
-                  : "bg-gray-800 border-gray-700"
-              }`}
-            >
-              {!isMe && (
-                <div className="text-xs text-blue-400">
-                  {m.name || "User"}
-                </div>
-              )}
+          <div
+            key={msg.id}
+            className="bg-gray-800 p-3 rounded-lg"
+          >
 
-              <div className="mt-1">{m.text}</div>
+            {/* NAME */}
+            <div className="text-sm text-blue-400 mb-1">
+              {msg.name}
+            </div>
 
-              {/* REACTIONS */}
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {m.reactions?.map((r, i) => (
-                  <span
-                    key={i}
-                    className="text-xs bg-gray-700 px-2 py-0.5 rounded cursor-pointer"
-                    onClick={() => react(m.id, r.emoji)}
-                  >
-                    {r.emoji} {r.count}
-                  </span>
-                ))}
+            {/* TEXT */}
+            <div>
+              {msg.text}
+            </div>
 
-                {EMOJIS.map((emoji) => (
+            {/* REACTIONS */}
+            <div className="flex gap-2 mt-2">
+
+              {(msg.reactions || [])
+                .map((r, i) => (
+
                   <button
-                    key={emoji}
-                    onClick={() => react(m.id, emoji)}
-                    className="text-xs"
+                    key={i}
+                    className="text-sm bg-gray-700 px-2 py-1 rounded"
                   >
-                    {emoji}
+                    {r.emoji}
+                    {" "}
+                    {r.count}
                   </button>
                 ))}
-              </div>
 
-              {/* TIME + STATUS */}
-              <div className="text-xs text-gray-400 mt-2 flex justify-between">
-                <span>
-                  {m.createdAt
-                    ? new Date(m.createdAt).toLocaleTimeString()
-                    : ""}
-                </span>
+              <button
+                onClick={() =>
+                  addReaction(
+                    msg.id,
+                    "👍"
+                  )
+                }
 
-                {isMe && (
-                  <span className="text-blue-300">
-                    {m.status === "seen" ? "✔✔ Seen" : "✔ Sent"}
-                  </span>
-                )}
-              </div>
+                className="text-sm bg-gray-700 px-2 py-1 rounded"
+              >
+                👍
+              </button>
+
+              <button
+                onClick={() =>
+                  addReaction(
+                    msg.id,
+                    "❤️"
+                  )
+                }
+
+                className="text-sm bg-gray-700 px-2 py-1 rounded"
+              >
+                ❤️
+              </button>
+
             </div>
-          );
-        })}
+          </div>
+        ))}
 
-        <div ref={bottomRef} />
+        {typing && (
+          <div className="text-sm text-gray-400">
+            Someone is typing...
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+
       </div>
 
-      {/* TYPING */}
-      {typingUsers.length > 0 && (
-        <div className="text-xs text-gray-400 px-4 pb-1">
-          Someone is typing...
-        </div>
-      )}
-
       {/* INPUT */}
-      <div className="p-3 border-t border-gray-700 flex gap-2">
+      <div className="p-4 border-t border-gray-700 flex gap-2">
+
         <input
           value={text}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          className="flex-1 p-2 rounded bg-gray-800 outline-none"
-          placeholder="Type message..."
+
+          onChange={(e) => {
+
+            setText(
+              e.target.value
+            );
+
+            const socket =
+              getSocket();
+
+            socket?.emit(
+              "typing",
+              roomId
+            );
+          }}
+
+          onBlur={() => {
+
+            const socket =
+              getSocket();
+
+            socket?.emit(
+              "stop-typing",
+              roomId
+            );
+          }}
+
+          onKeyDown={
+            handleKeyDown
+          }
+
+          placeholder="Type a message..."
+
+          className="flex-1 bg-gray-800 rounded px-3 py-2 outline-none"
         />
 
         <button
-          onClick={sendMessage}
-          className="bg-blue-500 px-4 rounded"
+          onClick={
+            sendMessage
+          }
+
+          className="bg-blue-500 hover:bg-blue-600 px-4 rounded"
         >
           Send
         </button>
+
       </div>
+
     </div>
   );
 }
