@@ -217,119 +217,116 @@ io.on(
 
     // ================= REACTION =================
     socket.on(
-      "add-reaction",
+  "add-reaction",
 
-      async ({
-        messageId,
-        emoji,
-        roomId,
-      }) => {
+  async ({
+    messageId,
+    emoji,
+    roomId,
+  }) => {
 
-        try {
+    try {
 
-          // check existing
-          const existing =
-            await pool.query(
-              `
-              SELECT *
-              FROM reactions
+      // CHECK EXISTING
+      const existing =
+        await pool.query(
+          `
+          SELECT *
+          FROM reactions
+          WHERE
+            message_id = $1
+            AND user_id = $2
+            AND emoji = $3
+          `,
+          [
+            messageId,
+            socket.user.userId,
+            emoji,
+          ]
+        );
 
-              WHERE message_id = $1
-              AND user_id = $2
-              AND emoji = $3
-              `,
-              [
-                messageId,
-                socket.user.userId,
-                emoji,
-              ]
-            );
+      // REMOVE IF EXISTS
+      if (existing.rows.length > 0) {
 
-          // toggle reaction
-          if (
-            existing.rows
-              .length > 0
-          ) {
+        await pool.query(
+          `
+          DELETE FROM reactions
+          WHERE
+            message_id = $1
+            AND user_id = $2
+            AND emoji = $3
+          `,
+          [
+            messageId,
+            socket.user.userId,
+            emoji,
+          ]
+        );
 
-            await pool.query(
-              `
-              DELETE FROM reactions
+      } else {
 
-              WHERE message_id = $1
-              AND user_id = $2
-              AND emoji = $3
-              `,
-              [
-                messageId,
-                socket.user.userId,
-                emoji,
-              ]
-            );
+        // INSERT NEW
+        await pool.query(
+          `
+          INSERT INTO reactions
+          (
+            message_id,
+            user_id,
+            emoji
+          )
 
-          } else {
-
-            await pool.query(
-              `
-              INSERT INTO reactions
-              (
-                message_id,
-                user_id,
-                emoji
-              )
-
-              VALUES
-              (
-                $1,
-                $2,
-                $3
-              )
-              `,
-              [
-                messageId,
-                socket.user.userId,
-                emoji,
-              ]
-            );
-          }
-
-          // updated reactions
-          const result =
-            await pool.query(
-              `
-              SELECT
-                emoji,
-                COUNT(*)::int AS count
-
-              FROM reactions
-
-              WHERE message_id = $1
-
-              GROUP BY emoji
-              `,
-              [messageId]
-            );
-
-          io.to(
-            String(roomId)
-          ).emit(
-            "reaction-update",
-            {
-              messageId,
-
-              reactions:
-                result.rows,
-            }
-          );
-
-        } catch (err) {
-
-          console.error(
-            "REACTION ERROR:",
-            err
-          );
-        }
+          VALUES
+          (
+            $1,
+            $2,
+            $3
+          )
+          `,
+          [
+            messageId,
+            socket.user.userId,
+            emoji,
+          ]
+        );
       }
-    );
+
+      // GET UPDATED COUNTS
+      const result =
+        await pool.query(
+          `
+          SELECT
+            emoji,
+            COUNT(*)::int AS count
+
+          FROM reactions
+
+          WHERE message_id = $1
+
+          GROUP BY emoji
+          `,
+          [messageId]
+        );
+
+      io.to(
+        String(roomId)
+      ).emit(
+        "reaction-update",
+        {
+          messageId,
+          reactions:
+            result.rows,
+        }
+      );
+
+    } catch (err) {
+
+      console.error(
+        "REACTION ERROR:",
+        err
+      );
+    }
+  }
+);
 
     // ================= TYPING =================
     socket.on(
