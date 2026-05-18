@@ -296,31 +296,32 @@ export default function Chat({
                   </button>
                 ))}
 
-              <button
-                onClick={() =>
-                  addReaction(
-                    msg.id,
-                    "👍"
-                  )
-                }
+              {[
+  "👍",
+  "❤️",
+  "😂",
+  "🔥",
+  "😮",
+  "😢",
+  "👏",
+  "🎉",
+].map((emoji) => (
 
-                className="text-sm bg-gray-700 px-2 py-1 rounded"
-              >
-                👍
-              </button>
+  <button
+    key={emoji}
 
-              <button
-                onClick={() =>
-                  addReaction(
-                    msg.id,
-                    "❤️"
-                  )
-                }
+    onClick={() =>
+      addReaction(
+        msg.id,
+        emoji
+      )
+    }
 
-                className="text-sm bg-gray-700 px-2 py-1 rounded"
-              >
-                ❤️
-              </button>
+    className="text-sm bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition"
+  >
+    {emoji}
+  </button>
+))}
 
             </div>
           </div>
