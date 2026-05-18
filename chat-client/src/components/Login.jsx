@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useState,
+} from "react";
+
 import {
   loginAPI,
   registerAPI,
@@ -20,136 +23,172 @@ export default function Login({
   const [password, setPassword] =
     useState("");
 
-  const [loading, setLoading] =
-    useState(false);
-
   const [error, setError] =
     useState("");
 
+  const [loading, setLoading] =
+    useState(false);
+
   // ================= SUBMIT =================
-  const handleSubmit = async (e) => {
+  const handleSubmit =
+    async (e) => {
 
-    e.preventDefault();
+      e.preventDefault();
 
-    setLoading(true);
-    setError("");
+      setError("");
 
-    try {
+      try {
 
-      let data;
+        setLoading(true);
 
-      if (isLogin) {
+        let data;
 
-        data = await loginAPI(
-          email,
-          password
+        // LOGIN
+        if (isLogin) {
+
+          data =
+            await loginAPI(
+              email,
+              password
+            );
+
+        } else {
+
+          // REGISTER
+          data =
+            await registerAPI(
+              name,
+              email,
+              password
+            );
+        }
+
+        // SAVE USER
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            data.user
+          )
         );
 
-      } else {
+        // IMPORTANT
+        if (
+          typeof onSuccess ===
+          "function"
+        ) {
 
-        data = await registerAPI(
-          name,
-          email,
-          password
+          onSuccess(
+            data.token
+          );
+
+        } else {
+
+          console.error(
+            "onSuccess is not a function"
+          );
+        }
+
+      } catch (err) {
+
+        console.error(err);
+
+        setError(
+          err.response?.data
+            ?.error ||
+            err.message ||
+            "Something went wrong"
         );
+
+      } finally {
+
+        setLoading(false);
       }
-
-      localStorage.setItem(
-        "token",
-        data.token
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
-
-      onSuccess(data.token);
-
-    } catch (err) {
-
-     console.log(err.response?.data);
-
-setError(
-  err.response?.data?.error ||
-  err.message ||
-  "Something went wrong"
-);
-    } finally {
-
-      setLoading(false);
-    }
-  };
+    };
 
   // ================= GOOGLE LOGIN =================
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin =
+    () => {
 
-    window.location.href =
-      `${process.env.REACT_APP_API_URL}/auth/google`;
-  };
+      window.location.href =
+        `${process.env.REACT_APP_API_URL}/auth/google`;
+    };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center px-4">
 
-      {/* BACKGROUND GLOW */}
-      <div className="absolute w-96 h-96 bg-blue-500 opacity-20 blur-3xl rounded-full top-20 left-20"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[#020617] overflow-hidden relative">
 
-      <div className="absolute w-96 h-96 bg-purple-500 opacity-20 blur-3xl rounded-full bottom-20 right-20"></div>
+      {/* BACKGROUND */}
+      <div className="absolute inset-0">
+
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 opacity-20 blur-3xl rounded-full" />
+
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-600 opacity-20 blur-3xl rounded-full" />
+
+      </div>
 
       {/* CARD */}
-      <div className="relative z-10 w-full max-w-md bg-gray-900/80 backdrop-blur-xl border border-gray-800 rounded-3xl shadow-2xl p-8">
+      <div className="relative z-10 w-full max-w-md bg-[#0f172a]/90 border border-slate-800 backdrop-blur-xl rounded-3xl shadow-2xl p-10">
 
         {/* LOGO */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-6">
 
-          <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-3xl shadow-lg">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shadow-xl text-4xl">
             💬
           </div>
+
         </div>
 
         {/* TITLE */}
-        <h1 className="text-4xl font-bold text-center text-white mb-2">
+        <h1 className="text-5xl font-black text-center text-white mb-3">
           Chat App
         </h1>
 
-        <p className="text-center text-gray-400 mb-8">
+        <p className="text-center text-slate-400 mb-10 text-lg">
           Real-time messaging platform
         </p>
 
         {/* ERROR */}
         {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-xl mb-4 text-sm">
+
+          <div className="mb-6 bg-red-500/20 border border-red-500 text-red-300 px-4 py-4 rounded-2xl">
             {error}
           </div>
         )}
 
         {/* FORM */}
         <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
+          onSubmit={
+            handleSubmit
+          }
+          className="space-y-5"
         >
 
           {!isLogin && (
+
             <input
               type="text"
               placeholder="Full Name"
               value={name}
               onChange={(e) =>
-                setName(e.target.value)
+                setName(
+                  e.target.value
+                )
               }
-              className="w-full px-4 py-4 rounded-xl bg-gray-800 border border-gray-700 text-white outline-none focus:border-blue-500 transition"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-2xl px-5 py-4 text-white outline-none"
               required
             />
           )}
 
           <input
             type="email"
-            placeholder="Email Address"
+            placeholder="Email"
             value={email}
             onChange={(e) =>
-              setEmail(e.target.value)
+              setEmail(
+                e.target.value
+              )
             }
-            className="w-full px-4 py-4 rounded-xl bg-gray-800 border border-gray-700 text-white outline-none focus:border-blue-500 transition"
+            className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-2xl px-5 py-4 text-white outline-none"
             required
           />
 
@@ -158,36 +197,41 @@ setError(
             placeholder="Password"
             value={password}
             onChange={(e) =>
-              setPassword(e.target.value)
+              setPassword(
+                e.target.value
+              )
             }
-            className="w-full px-4 py-4 rounded-xl bg-gray-800 border border-gray-700 text-white outline-none focus:border-blue-500 transition"
+            className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-2xl px-5 py-4 text-white outline-none"
             required
           />
 
-          {/* BUTTON */}
+          {/* LOGIN BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition duration-200 shadow-lg"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-700 hover:scale-[1.02] transition py-4 rounded-2xl text-white font-bold text-lg shadow-lg"
           >
             {loading
               ? "Please wait..."
               : isLogin
               ? "Login"
-              : "Create Account"}
+              : "Register"}
           </button>
+
         </form>
 
         {/* GOOGLE */}
         <button
-          onClick={handleGoogleLogin}
-          className="w-full mt-4 py-4 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition duration-200"
+          onClick={
+            handleGoogleLogin
+          }
+          className="w-full mt-5 bg-red-500 hover:bg-red-600 transition py-4 rounded-2xl text-white font-bold text-lg shadow-lg"
         >
           Continue with Google
         </button>
 
         {/* TOGGLE */}
-        <p className="text-center text-gray-400 mt-6">
+        <div className="mt-8 text-center text-slate-400">
 
           {isLogin
             ? "Don't have an account?"
@@ -195,15 +239,19 @@ setError(
 
           <button
             onClick={() =>
-              setIsLogin(!isLogin)
+              setIsLogin(
+                !isLogin
+              )
             }
-            className="ml-2 text-blue-400 hover:text-blue-300"
+            className="ml-2 text-blue-400 hover:text-blue-300 font-semibold"
           >
             {isLogin
               ? "Register"
               : "Login"}
           </button>
-        </p>
+
+        </div>
+
       </div>
     </div>
   );
